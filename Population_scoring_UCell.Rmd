@@ -21,17 +21,17 @@ library(ggplot2)
 
 Loading signatures (Supp. Material #) and required objects
 ```{r}
-list.files(path = "All_inputs/Microarray_signatures")
+list.files(path = "Microarray_signatures")
 names_sig <- c("qNSC", "aNSC", "TAP", "iNB", "NB")
 
 
-Population_signatures <- lapply(X = paste0("All_inputs/Microarray_signatures/", #Use list_files again
+Population_signatures <- lapply(X = paste0("Microarray_signatures/", #Use list_files again
                                  names_sig, 
                                  "_signature.csv"),
                       FUN = read_csv)
 
-SCT_obj <- readRDS("Objects/SCT_obj.rds")
-Biomart_annotated <- read.csv("Analysis_tools/Biomart_annotated.csv")
+SCT_obj <- readRDS("SCT_obj.rds")
+Biomart_annotated <- read.csv("Biomart_annotated.csv")
 
 #Ajouter kable(head()) des signatures
 ```
