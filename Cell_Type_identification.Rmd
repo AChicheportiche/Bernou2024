@@ -65,8 +65,8 @@ change_facet_name <- function(seurat_object,
 
 Import objects
 ```{r}
-SCT_obj <- readRDS("Objects/SCT_obj.rds")
-Biomart_annotated <- read.csv("Analysis_tools/Biomart_annotated.csv")
+SCT_obj <- readRDS("SCT_obj.rds")
+Biomart_annotated <- read.csv("Biomart_annotated.csv")
 ```
 
 Choose genes to display in violin plot and order clusters appropriately
