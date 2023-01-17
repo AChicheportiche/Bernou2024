@@ -111,29 +111,6 @@ NPC_obj$Identity <-
                            1,
                            function(vec) {which(vec == max(vec))})
                      ]
-if(length(vec_max) > 1){
-  my_max <- vec_max[1] # comment gere which.max dans cette situation
-  warnings("Attention égalité dans les maximums")
-  
-  #alternative
-  stop("Egalite dans les max, gerer autrement l'attribution")
-  
-} else {
-  my_max <- vec_max
-}
-# test <- apply(NPC_obj@meta.data[, paste0(names_sig2, method_UC)],
-#               1, #1 for rows ; 2 for columns
-#               function(line) {
-#                 colnames(NPC_obj@meta.data[, paste0(names_sig2,
-#                                           method_UC)])[which.max(line)]})
-# test <- gsub(pattern = method_UC, replacement = "", test)
-# df <- cbind.data.frame(test, score = UCell_scores$Identity)
-# identical(df$test, df$score)
-
-# --> all clear donc on peut s'affranchir du passage avec UCell dataframe
-
-# No two max values were identical when "which.max" was replaced with "function(vec){which(vec == max(vec))} and the lign was stored in a vector instead of a data.frame
-
 
 # Cell_identity <- UCell_scores$Identity
 # names(Cell_identity) <- rownames(UCell_scores)
