@@ -22,7 +22,7 @@ library(ggplot2)
 Loading signatures (Supp. Material #) and required objects
 ```{r}
 list.files(path = "Microarray_signatures")
-names_sig <- c("qNSC", "aNSC", "TAP", "iNB", "NB")
+names_sig <- c("qNSC", "aNSC", "TAP", "iNB", "mNB")
 
 
 Population_signatures <- lapply(X = paste0("Microarray_signatures/", #Use list_files again
@@ -75,8 +75,6 @@ names_sig2 <- paste0("s_", names_sig)
 names(Population_signatures) <- names_sig2
 ```
 
-
-Calculation of UCell Score for each signature (s-TAP has only 99 genes, producing a NA warning for position 100)
 ```{r}
 method_UC <- "_UC_SCT"
 
@@ -123,10 +121,10 @@ if(length(vec_max) > 1){
 } else {
   my_max <- vec_max
 }
-# test <- apply(FBL_NPC@meta.data[, paste0(names_sig2, method_UC)],
+# test <- apply(NPC_obj@meta.data[, paste0(names_sig2, method_UC)],
 #               1, #1 for rows ; 2 for columns
 #               function(line) {
-#                 colnames(FBL_NPC@meta.data[, paste0(names_sig2,
+#                 colnames(NPC_obj@meta.data[, paste0(names_sig2,
 #                                           method_UC)])[which.max(line)]})
 # test <- gsub(pattern = method_UC, replacement = "", test)
 # df <- cbind.data.frame(test, score = UCell_scores$Identity)
@@ -136,7 +134,6 @@ if(length(vec_max) > 1){
 
 # No two max values were identical when "which.max" was replaced with "function(vec){which(vec == max(vec))} and the lign was stored in a vector instead of a data.frame
 
-#Réfléchir à un scatterplot de la variance et de
 
 # Cell_identity <- UCell_scores$Identity
 # names(Cell_identity) <- rownames(UCell_scores)
