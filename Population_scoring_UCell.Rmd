@@ -112,12 +112,12 @@ NPC_obj$Identity <-
                            function(vec) {which(vec == max(vec))})
                      ]
 
-# Cell_identity <- UCell_scores$Identity
-# names(Cell_identity) <- rownames(UCell_scores)
-# 
-# NPC_obj <- AddMetaData(NPC_obj, metadata = Cell_identity, col.name = "Identity")
-# 
-# NPC_obj$Identity <- factor(NPC_obj$Identity, levels = names_sig2)
+Cell_identity <- UCell_scores$Identity
+names(Cell_identity) <- rownames(UCell_scores)
+
+NPC_obj <- AddMetaData(NPC_obj, metadata = Cell_identity, col.name = "Identity")
+
+NPC_obj$Identity <- factor(NPC_obj$Identity, levels = names_sig2)
 Idents(NPC_obj) <- "Identity"
 ```
 
