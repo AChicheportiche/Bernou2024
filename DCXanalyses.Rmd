@@ -19,7 +19,7 @@ Import objects
 ```{r}
 
 SCT_obj <- readRDS("Objects/SCT_obj.rds")
-Biomart_annotated <- read.csv("Analysis_tools/Biomart_annotated.csv")
+Biomart_annotated <- read.csv("Biomart_annotated.csv")
 ```
 
 This analysis is focused on NPC populations, therefore we will use a subset of the base object
