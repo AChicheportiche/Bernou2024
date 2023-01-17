@@ -13,17 +13,13 @@ library(tidyverse)
 library(dplyr)
 library(clustree)
 library(patchwork)
-#pour savoir ou sont localises les differentes librairies (user et system)
-.libPaths()
-#en ayant mis le pacakage dans mon projet pour être sûr qu'il le trouve
 library(Seurat, lib.loc = "/opt/rstudio-server_conda/conda/envs/rstudio-server_4.1.0/lib/R/library/")
-#library(SeuratObject, lib.loc = "/opt/rstudio-server_conda/conda/envs/rstudio-server_4.1.0/lib/R/library/") 
 ```
 
 Import objects
 ```{r Object loading}
-SCT_obj <- readRDS("Objects/SCT_obj.rds")
-Biomart_annotated <- read.csv("Analysis_tools/Biomart_annotated.csv")
+SCT_obj <- readRDS("SCT_obj.rds")
+Biomart_annotated <- read.csv("Biomart_annotated.csv")
 ```
 
 The cell cycle scoring feature of seurat affects a S and G2/M score to each cell.
@@ -67,7 +63,7 @@ resolutions <- 1.2#seq(0.2,1.6, 0.2)
 SCT_obj <- FindClusters(SCT_obj, 
                         graph.name = "int_20_snn", 
                         resolution = resolutions)
-# pdf("Analysis_tools/UMAP_resolutions.pdf")
+# pdf("UMAP_resolutions.pdf")
 # lapply(X = resolutions, FUN = function(resolv){
 #   print(UMAPPlot(SCT_obj, 
 #                  group.by = paste0("int_20_snn_res.", resolv), label = T))
@@ -90,7 +86,7 @@ names(Status_info) <- Sample_names
 SCT_obj <- RenameIdents(SCT_obj, Status_info)
 SCT_obj$Status <- Idents(SCT_obj)
 # 
-# saveRDS(object = SCT_obj, file = "Objects/SCT_obj_umap.rds")
+# saveRDS(object = SCT_obj, file = "SCT_obj_umap.rds")
 ```
 
 ```{r}
