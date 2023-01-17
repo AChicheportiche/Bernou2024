@@ -30,7 +30,7 @@ Sample_names <- c("CTRL_1", "CTRL_2", "4Gy_1", "4Gy_2")
 
 Sample_list <- 
   lapply(X = Sample_names, FUN = function(sample){
-    Read10X(data.dir = paste0("All_inputs/Samples/SVZ_", sample),
+    Read10X(data.dir = paste0("Samples/SVZ_", sample),
             gene.column = 1,
             cell.column = 1,
             unique.features = TRUE,
