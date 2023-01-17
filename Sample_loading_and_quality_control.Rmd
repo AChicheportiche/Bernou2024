@@ -24,14 +24,14 @@ library(patchwork)
 Ensembl_gene <- useEnsembl(biomart = "genes", dataset = "mmusculus_gene_ensembl")
 ```
 
-Loading all samples and creating list of seurat objects; teh list will be used until integration
+Loading all samples and creating list of seurat objects; the list will be used until integration
 ```{r}
 
 Sample_names <- c("CTRL_1", "CTRL_2", "4Gy_1", "4Gy_2")
 
 Sample_list <- 
   lapply(X = Sample_names, FUN = function(sample){
-    Read10X(data.dir = paste0("All_inputs/Samples/SVZ_", sample),
+    Read10X(data.dir = paste0("Samples/SVZ_", sample),
             gene.column = 1,
             cell.column = 1,
             unique.features = TRUE,
@@ -145,7 +145,7 @@ Sample_list <- lapply(X = 1:4, FUN = function(Spl_nb){
   Sample_list[[Spl_nb]]$id <- ID
   return(Sample_list[[Spl_nb]])
 })
-saveRDS(Sample_list, file = "Objects/Sample_list_after_subset.rds")
+saveRDS(Sample_list, file = "Sample_list_after_subset.rds")
 ```
 
 
