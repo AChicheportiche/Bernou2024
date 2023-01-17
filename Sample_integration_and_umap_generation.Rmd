@@ -51,7 +51,7 @@ Biomart_annotated <- getBM(attributes = c("ensembl_gene_id",
                            filters = "ensembl_gene_id", 
                            values = rownames(Sample_list[[1]]),
                            mart = Ensembl_gene) 
-write_csv(Biomart_annotated, file = "Analysis_tools/Biomart_annotated.csv")
+write_csv(Biomart_annotated, file = "Biomart_annotated.csv")
 ```
 
 Create variables for easy calling of Ensembl Id from External Gene Name (or vice-versa)
@@ -245,6 +245,6 @@ names(Status_info) <- Sample_names
 SCT_obj <- RenameIdents(SCT_obj, Status_info)
 SCT_obj$Status <- Idents(SCT_obj)
 
-saveRDS(object = SCT_obj, file = "Objects/SCT_obj_umap.rds")
+saveRDS(object = SCT_obj, file = "SCT_obj_umap.rds")
 ```
 
