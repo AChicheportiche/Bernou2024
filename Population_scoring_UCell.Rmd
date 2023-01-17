@@ -33,7 +33,7 @@ Population_signatures <- lapply(X = paste0("Microarray_signatures/", #Use list_f
 SCT_obj <- readRDS("SCT_obj.rds")
 Biomart_annotated <- read.csv("Biomart_annotated.csv")
 
-#Ajouter kable(head()) des signatures
+kable(head(Population_signatures)) 
 ```
 
 This analysis is focused on NPC populations, therefore we will use a subset of the bas object
