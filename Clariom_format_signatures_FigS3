@@ -12,7 +12,7 @@ library(ggplot2)
 
 
 #### Formatting TACX output data ####
-AllClariom <- read_excel("~/Clariom/AllclariomA32.xlsx")
+AllClariom <- read_excel("AllclariomA32.xlsx")
 AllClariom <- AllClariom[!duplicated(AllClariom[,"NAME"]),]
 AllClariom <- AllClariom[, -1] # Delete the Affymetrix junction IDs
 AllClariom[,2:21] <- 2^AllClariom[,2:21]
