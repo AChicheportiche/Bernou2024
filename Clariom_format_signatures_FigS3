@@ -31,13 +31,14 @@ for (i in names_sig) {
 
 Data_Norm <- AllClariom[, c("NAME",names_sig)]
 
-#### Redmond 2021 ####
-Redmond_clusters <- c("14","6","13","12","8","16","10","17","0","1","4")
-Redmond_dir <- "~/Clariom/Input_datasets/Redmond_data clusters.xlsx"
-list_Redmond <- lapply(X = Redmond_clusters, FUN = function(cluster_nb){
-  return(read_xlsx(Redmond_dir, sheet = which(excel_sheets(Redmond_dir) == cluster_nb))$Gene)
+#### Cebrian 2021 ####
+#### https://cells.ucsc.edu/?ds=svzneurogeniclineage+sc-rna-seq
+Cebrian_clusters <- c("14","6","13","12","8","16","10","17","0","1","4")
+Cebrian_dir <- "~/Clariom/Input_datasets/Cebrian_data clusters.xlsx"
+list_Cebrian <- lapply(X = Cebrian_clusters, FUN = function(cluster_nb){
+  return(read_xlsx(Cebrian_dir, sheet = which(excel_sheets(Redmond_dir) == cluster_nb))$Gene)
 })
-names(list_Redmond) <- paste0("Redmond_",Redmond_clusters)
+names(list_Cebrian) <- paste0("Cebrian_",Cebrian_clusters)
 
 
 
