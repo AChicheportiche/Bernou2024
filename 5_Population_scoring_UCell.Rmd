@@ -1,0 +1,175 @@
+---
+title: "Population identification with microarray signatures matching"
+output:
+  html_document:
+    df_print: paged
+---
+
+In this script, we load the population signatures defined using our microarrays experiments
+We then select the top genes for each signature, and calculate a UCell score for each signature in each cell.
+Cells are individually attributed to populations based on the highest score amongst signatures.
+
+Libraries
+```{r Libraries}
+library(tidyverse)
+library(dplyr)
+library(patchwork)
+library(Seurat, lib.loc = "/opt/rstudio-server_conda/conda/envs/rstudio-server_4.1.0/lib/R/library/")
+library(readr)
+library(UCell)
+library(ggplot2)
+library(circlize)
+library(scales)
+library(openxlsx)
+```
+
+Loading required objects
+This analysis is focused on NPC populations, therefore we will use a subset of the base object
+```{r Import objects}
+SCT_obj <- readRDS("Objects/SCT_obj.rds")
+Biomart_annotated <- read.csv("Analysis_tools/Biomart_annotated.csv")
+geneIDs <- # For easy calling of genes through external gene name
+  Biomart_annotated[!duplicated(Biomart_annotated$external_gene_name),1]
+names(geneIDs) <- Biomart_annotated[!duplicated(Biomart_annotated$external_gene_name),2]
+```
+
+Distinction of astrocytes and qNSC using UCell Score
+
+Loading genesets from Cebrian-Silla et al. 2021, selecting Top 100 genes
+
+```{r Import signatures astro-qNSC}
+Astrocytes_markers <- read.xlsx("All_inputs/Cebrian-Silla/elife_67436_supp1_v3.xlsx", sheet = 1)
+B_cells_markers <- read.xlsx("All_inputs/Cebrian-Silla/elife_67436_supp1_v3.xlsx", sheet = 3)
+Astro_vs_B <- list(geneIDs[Astrocytes_markers$genes][1:100], geneIDs[B_cells_markers$genes][1:100])
+names(Astro_vs_B) <- c("Astrocytes", "B_Cells")
+```
+
+Selecting astrocytes and B cells
+```{r Selecting astrocytes and B cells}
+clusters_of_Astro <- c("4", "13")
+
+Astro_obj <- subset(SCT_obj, clusters %in% clusters_of_Astro)
+```
+
+Running UCell
+```{r Running UCell}
+DefaultAssay(Astro_obj) <- "SCT" # Run on normalized counts
+method_UC <- "_UC_Score"
+Astro_obj <-
+  AddModuleScore_UCell(
+    obj = Astro_obj,
+    features = Astro_vs_B,
+    name =  method_UC,  
+    assay = "SCT"
+  )#suffix for metadata
+```
+
+Creating new metadata column containing the name of the highest score
+```{r Metadata creation}
+Astro_obj$Astro_vs_B <- 
+  colnames(Astro_obj@meta.data[,
+                             paste0(names(Astro_vs_B), method_UC)])[
+                     apply(Astro_obj@meta.data[,
+                                             paste0(names(Astro_vs_B),
+                                                    method_UC)], 
+                           1,
+                           function(vec) {which(vec == max(vec))})
+                     ]
+```
+
+Metadata addition
+```{r Metadata addition}
+SCT_obj <- AddMetaData(SCT_obj, 
+                       metadata = Astro_obj$Astro_vs_B, 
+                       col.name = "Astro_vs_B")
+UMAPPlot(SCT_obj, group.by = "Astro_vs_B", label = T) + NoLegend()
+```
+
+
+Loading population signatures from bulk transcriptome data (Supp. Material #) 
+```{r Loading populations}
+names_sig <- c("qNSC", "aNSC", "TAP", "iNB", "mNB")
+
+Population_signatures <- lapply(X = paste0("All_inputs/Microarray_signatures/", 
+                                           names_sig,
+                                           "_signature.xlsx"),
+                                FUN = read.xlsx)
+```
+
+Selection of genes present in SCT assay and determination of top 100 highest fold-change
+```{r Top100 genes}
+Population_signatures <- 
+  lapply(X = 1:length(names_sig),
+         FUN = function(signature_nb){
+           signature_list <- merge(x = Population_signatures[[signature_nb]],
+                                   y = Biomart_annotated,
+                                   by.x = "gene",
+                                   by.y = "external_gene_name",
+                                   all.x = TRUE) %>%
+             filter(!is.na(description)) %>% # Use subset and select
+             arrange(desc(FC))
+           signature_list$...1 <- NULL
+           signature_list$Population <- names_sig[[signature_nb]]
+           signature_list <- 
+             filter(signature_list, ensembl_gene_id %in%
+                      rownames(SCT_obj@assays[["SCT"]]@data)) %>%
+             arrange(desc(FC))
+           write.csv(signature_list[1:100,], row.names = FALSE,
+                     file = paste0("Outputs/Population_signatures_top100/Top100_", 
+                                   names_sig[[signature_nb]], 
+                                   "_signature.csv")) #Returns the provided gene lists
+           return(signature_list[1:100,"ensembl_gene_id"])
+         })
+
+names_sig2 <- paste0("s_", names_sig)
+names(Population_signatures) <- names_sig2
+```
+
+Calculation of UCell Score for each signature (s-TAP has only 99 genes, producing a NA warning for position 100)
+```{r UCell score NPC}
+NPC_obj <- subset(SCT_obj, NPC == "NPC") 
+
+DefaultAssay(NPC_obj) <- "SCT"
+
+NPC_obj <-
+  AddModuleScore_UCell(
+    obj = NPC_obj,
+    features = Population_signatures,
+    name = method_UC,
+    assay = "SCT",
+    slot = "counts")
+```
+
+Retrieve UCell scores and ID from object, then assign cell to population based on highest score
+```{r Assign population identity}
+NPC_obj$Identity <-  
+  colnames(NPC_obj@meta.data[,
+                             paste0(names_sig2, method_UC)])[
+                               apply(NPC_obj@meta.data[,
+                                                       paste0(names_sig2,
+                                                              method_UC)],
+                                     1,
+                                     function(vec) {which(vec == max(vec))})
+                               ]
+
+
+Identity_convert <- paste0("s-", names_sig)
+names(Identity_convert) <- paste0(names_sig2, method_UC)
+
+Idents(NPC_obj) <- "Identity"
+NPC_obj <- RenameIdents(NPC_obj, Identity_convert)
+
+NPC_obj$Identity <- Idents(NPC_obj)
+NPC_obj$Identity <- factor(Idents(NPC_obj), levels = Identity_convert)
+
+SCT_obj <- AddMetaData(SCT_obj,
+                       metadata = NPC_obj$Identity, 
+                       col.name = "Identity")
+UMAPPlot(SCT_obj, group.by = "Identity", label = T) + NoLegend()
+```
+
+
+```{r Save object}
+saveRDS(SCT_obj, file = "Objects/SCT_obj.rds")
+sessionInfo()
+```

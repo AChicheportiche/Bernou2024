@@ -1,0 +1,606 @@
+---
+title: "Figures"
+output: html_document
+---
+
+### This script recreates and stores all figures from the manuscript (except Fig. S4A)
+
+In order:
+
+Fig. S4B S5A 3B S5B 3C 3D 3E 3F 3H 3I 3J 5A S5C 3G 3K 5B 4A 4B 5C 5D S7A S7B S6  
+
+```{r Librairies}
+library(tidyverse)
+library(dplyr)
+library(patchwork)
+library(Seurat)
+library(readr)
+library(ggplot2)
+library(circlize)
+library(scales)
+library(openxlsx)
+```
+
+### Loading required objects and creating theme_NPC for minimalistic NPC UMAP
+```{r Import objects and create theme}
+SCT_obj <- readRDS("Objects/Ber23_SVZ_IRR.rds")
+Biomart_annotated <- read.csv("Analysis_tools/Biomart_annotated.csv")
+geneIDs <- # For easy calling of genes through external gene name
+  Biomart_annotated[!duplicated(Biomart_annotated$external_gene_name),1]
+names(geneIDs) <- Biomart_annotated[!duplicated(Biomart_annotated$external_gene_name),2]
+
+theme_NPC <- list(scale_x_continuous(limits = c(-3.5,9)), #focus the umap
+                  scale_y_continuous(limits = c(-15,5)),
+                  NoLegend(),
+                  NoAxes())
+```
+
+### Quality control
+
+##### Fig. S4A (Counts, features and mitochondrial gene percentage in samples) is created at sample loading in Script "2_Fig_S4A_Quality_Sample_Integration.Rmd"
+
+##### Fig. S4B: Representation of samples among clusters
+```{r Fig. S4B: Representation of samples among clusters}
+Freq_samples <- as.data.frame(table(SCT_obj$clusters, SCT_obj$orig.ident)) 
+
+Fig_S4B_Cluster_representation_in_samples <- 
+  ggplot(Freq_samples, aes(x = Var1, y = Freq, fill = Var2)) +
+  geom_bar(stat = "identity",position = "fill") +
+  xlab(NULL) + 
+  ylab("Proportion of cells")
+
+png("Figures/Fig_S4B_Cluster_representation_in_samples.png")
+print(Fig_S4B_Cluster_representation_in_samples)
+dev.off()
+```
+
+### UMAPs of all cells including micro-environment
+
+##### Fig. S5A: UMAP of all clusters
+```{r S5A UMAP all clusters}
+Fig_S5A_UMAP_all_clusters <- 
+  UMAPPlot(SCT_obj, group.by = "clusters", label = TRUE)
+
+png("Figures/Fig_S5A_UMAP_all_clusters.png")
+print(Fig_S5A_UMAP_all_clusters)
+dev.off()
+```
+
+##### Fig. 3B UMAP by Cell types
+```{r S5A UMAP all Cell_types}
+Fig_3B_UMAP_all_Cell_types <-
+  UMAPPlot(SCT_obj, group.by = "Cell_Type", label = TRUE)
+
+png("Figures/Fig_3B_UMAP_all_Cell_types.png")
+print(Fig_3B_UMAP_all_Cell_types)
+dev.off()
+```
+
+### Violin Plot representations
+
+##### Fig. S5B: Violin Plot of litterature markers in all clusters
+```{r S5B Vln cell markers all clusters}
+Genes_to_show <- c("Slc1a3", "Aqp4", "Gfap", "Vcam1", "S100a6", "Egfr", "Ascl1", "Top2a", "Mki67", "Dcx", "Robo2", "Slc17a6", "Pdgfra", "Il33", "Mog", "S100b", "Dnah11", "Acta2", "Flt1", "Pecam1", "Pdgfrb", "Des", "Vtn", "Fyn", "P2ry12", "Cd3e", "Clec4e", "Cox8b")
+names(Genes_to_show) <- geneIDs[Genes_to_show]
+
+Idents(SCT_obj) <- "clusters"
+DefaultAssay(SCT_obj) <- "SCT"
+
+vln <- 
+  VlnPlot(SCT_obj, 
+          features = geneIDs[Genes_to_show], combine = F, flip = T, stack = T) + 
+  NoLegend() + #Change names of genes back to gene symbol
+  facet_grid(feature ~ ., labeller = as_labeller(Genes_to_show))
+  
+#Rescale between 0 and 1
+for (i in 1:length(Genes_to_show)){
+    vln[["data"]][vln[["data"]]$feature == geneIDs[Genes_to_show][i],2] <-
+      rescale(vln[["data"]][vln[["data"]]$feature == geneIDs[Genes_to_show][i],2], 
+      to = c(0,1))
+}
+
+png("Figures/Fig_S5B_Vln_all_clusters_markers.png", width = 800, height = 800)
+print(vln)
+dev.off()
+```
+
+##### Fig. 3C Violin cell markers by cell type
+```{r 3C - Vln cell markers all cell types}
+Genes_to_show <- c("Slc1a3", "Aqp4", "Gfap", "Vcam1", "S100a6", "Egfr", "Ascl1", "Top2a", "Mki67", "Dcx", "Robo2", "Slc17a6", "Pdgfra", "Il33", "Mog", "S100b", "Dnah11", "Acta2", "Flt1", "Pecam1", "Pdgfrb", "Des", "Vtn", "Fyn", "P2ry12", "Cd3e", "Clec4e", "Cox8b")
+
+names(Genes_to_show) <- geneIDs[Genes_to_show]
+Idents(SCT_obj) <- "Cell_Type"
+
+vln <-
+  VlnPlot(SCT_obj, 
+          features = geneIDs[Genes_to_show], 
+          combine = F, flip = T, stack = T) + 
+  NoLegend() +#Change names of genes back to gene symbol
+  facet_grid(feature ~ ., labeller = as_labeller(Genes_to_show))
+#Rescale between 0 and 1
+for (i in 1:length(Genes_to_show)){
+    vln[["data"]][vln[["data"]]$feature == geneIDs[Genes_to_show][i],2] <-
+      rescale(vln[["data"]][vln[["data"]]$feature == geneIDs[Genes_to_show][i],2], 
+      to = c(0,1))
+}
+
+png("Figures/Fig_3C_Vln_all_Cell_Type.png", width = 700, height = 700)
+print(vln)
+dev.off()
+```
+
+##### Fig. 3D Violin of NPC markers in NPC clusters only 
+This analysis is focused on NPC populations, therefore we will use a subset of the base object
+```{r 3D Violin of NPC markers in NPC clusters only }
+Genes_to_show <- c("Slc1a3", "Aqp4", "Vcam1", "Gfap", "S100a6", "Egfr", "Ascl1", "Top2a", "Mki67", "Dcx", "Cd24a", "Robo2")
+names(Genes_to_show) <- geneIDs[Genes_to_show]
+
+NPC_obj <- subset(SCT_obj, NPC == "NPC")
+Idents(NPC_obj) <- "clusters_NPC"
+
+vln <-
+  VlnPlot(NPC_obj, 
+          features = geneIDs[Genes_to_show], 
+          combine = F, flip = T, stack = T) + 
+  NoLegend() + #Change names of genes back to gene symbol
+  facet_grid(feature ~ ., labeller = as_labeller(Genes_to_show))
+#Rescale between 0 and 1
+for (i in 1:length(Genes_to_show)){
+    vln[["data"]][vln[["data"]]$feature == geneIDs[Genes_to_show][i],2] <-
+      rescale(vln[["data"]][vln[["data"]]$feature == geneIDs[Genes_to_show][i],2], 
+      to = c(0,1))
+}
+
+png("Figures/Fig_3D_Vln_markers_NPC.png", width = 700, height = 700)
+print(vln)
+dev.off()
+```
+
+### UMAP representations of NPC cells only
+
+##### Fig. 3E UMAP of NPC clusters
+```{r Fig. 3E UMAP of NPC clusters}
+NPC_obj <- subset(SCT_obj, NPC == "NPC")
+
+Fig_3E_UMAP_NPC_clusters <-
+  UMAPPlot(NPC_obj, group.by = "clusters_NPC", label = TRUE) + 
+  theme_NPC
+
+png("Figures/Fig_3E_UMAP_NPC_clusters.png")
+print(Fig_3E_UMAP_NPC_clusters)
+dev.off()
+```
+
+##### Fig. 3F UMAP of Identity for NPC
+```{r Fig. 3F UMAP of Identity for NPC}
+NPC_obj <- subset(SCT_obj, NPC == "NPC")
+
+colors_identity <- c("#08D1E1", "#41ED58","#369DE3", "#AE77EF", "#F4576F")
+
+Fig_3F_UMAP_Identity_NPC <-
+  UMAPPlot(NPC_obj,
+           group.by = "Identity",
+           label = TRUE, 
+           cols = colors_identity) + 
+        theme_NPC
+
+png("Figures/Fig_3F_UMAP_Identity_NPC.png")
+print(Fig_3F_UMAP_Identity_NPC)
+dev.off()
+```
+
+
+##### Fig. 3H UMAP of Cell Cycle Phase for NPC
+```{r Fig. 3H UMAP of Cell Cycle Phase for NPC}
+NPC_obj <- subset(SCT_obj, NPC == "NPC")
+
+Fig_3H_UMAP_Cell_Cycle_NPC <- UMAPPlot(NPC_obj, 
+                                       group.by = "Phase", 
+                                       label = TRUE) + 
+  theme_NPC
+png("Figures/Fig_3H_UMAP_Cell_Cycle_NPC.png")
+print(Fig_3H_UMAP_Cell_Cycle_NPC)
+dev.off()
+```
+
+##### Fig. 3I UMAP Representing only 0Gy cells
+```{r Fig. 3I UMAP OGy only}
+NPC_obj <- subset(SCT_obj, NPC == "NPC")
+
+Fig_3J_UMAP_NPC_0Gy_only <- UMAPPlot(subset(NPC_obj, Status == "0Gy"), 
+                                     group.by = "clusters_NPC", 
+                                     label = TRUE) + 
+png("Figures/Fig_3I_UMAP_NPC_0Gy_only.png")
+print(Fig_3J_UMAP_NPC_0Gy_only)
+dev.off()
+```
+
+##### Fig. 3J UMAP Representing only 4Gy cells
+```{r Fig. 3J UMAP Representing only 4Gy cells}
+NPC_obj <- subset(SCT_obj, NPC == "NPC")
+
+Fig_3J_UMAP_NPC_4Gy_only <- UMAPPlot(subset(NPC_obj, Status == "4Gy"), 
+                                     group.by = "clusters_NPC", 
+                                     label = TRUE) + 
+  theme_NPC
+png("Figures/Fig_3J_UMAP_NPC_4Gy_only.png")
+print(Fig_3J_UMAP_NPC_4Gy_only)
+dev.off()
+```
+
+##### Fig. 5A UMAP of Dcx expression in NPC
+```{r Fig. 5A UMAP of Dcx expression in NPC}
+NPC_obj <- subset(SCT_obj, NPC == "NPC")
+
+Fig_5A_UMAP_Dcx_NPC <-
+  FeaturePlot(NPC_obj, features = geneIDs["Dcx"])
+
+png("Figures/Fig_5A_UMAP_Dcx_NPC.png")
+print(Fig_5A_UMAP_Dcx_NPC)
+dev.off()
+```
+
+##### Fig. S5C UMAP of Astrocyte_Bcell Identity in NPC
+```{r Fig. Fig. S5C UMAP of Astrocyte_Bcell Identity in NPC}
+NPC_obj <- subset(SCT_obj, NPC == "NPC")
+
+Fig_S5C_UMAP_Astro_B_NPC <-
+  FeaturePlot(NPC_obj, features = geneIDs["Dcx"])
+
+png("Figures/Fig_S5C_UMAP_Astro_B_NPC.png")
+print(Fig_S5C_UMAP_Astro_B_NPC)
+dev.off()
+```
+
+### Chord diagram
+
+##### Fig. 3G Chord Diagram of Identity and clusters for NPC
+using circlize package
+```{r Fig. 3G Chord Diagram of Identity and clusters for NPC}
+NPC_obj <- subset(SCT_obj, NPC == "NPC")
+
+# adjust the order of clusters (or use reverse(clusters_of_NPC))
+order_for_chord <- rev(levels(NPC_obj$clusters_NPC))
+Idents(NPC_obj) <- "clusters_NPC"
+NPC_obj@active.ident <- factor(NPC_obj$clusters, levels = order_for_chord)
+
+# Predefine the colors needed for the diagram
+colour_of_clusters <- data.frame(col = as.factor(order_for_chord),
+                                 pal = hue_pal()(14)) %>%
+  mutate(col = factor(col, levels = order_for_chord)) %>%
+  arrange(col)
+
+# Fetch correspondance between clusters and Identity, order as previously defined
+Projections <- table(NPC_obj$Identity, NPC_obj$clusters)
+Projections <- Projections[,order_for_chord]
+Projections
+
+Projection_order <- c(levels(NPC_obj$Identity), order_for_chord)
+gaps <- c(rep(3,4),8, rep(1,3), 3, rep(1,5), rep(3,4), 8)
+
+png("Figures/Fig_3G_Chord_Identity_clusters.png", height = 800, width = 800)
+circos.clear()
+circos.par(gap.after = gaps)
+chordDiagram(Projections, 
+             order = Projection_order, 
+             directional = 1, 
+             grid.col = (Projection_order = c("#08D1E1","#41ED58",
+                                              "#369DE3","#AE77EF",
+                                              "#F4576F", 
+                                              colour_of_clusters$pal)),
+             annotationTrack = c("name", "grid"), preAllocateTracks = 1)
+circos.clear()
+dev.off()
+```
+
+### Recovery ratios
+
+##### Fig. 3K Recovery ratios
+```{r Fig. 3K Recovery ratios}
+NPC_obj <- subset(SCT_obj, NPC == "NPC")
+
+# Retrieve number of cells per clusters by status
+cluster_counts <- as.data.frame(table(NPC_obj$clusters_NPC, NPC_obj$Status)) 
+colnames(cluster_counts) <- c("cluster", "status", "freq")
+
+# Remove non-neurogenic astrocytes from analysis
+cluster_counts <- filter(cluster_counts, cluster != "13")
+B_cells_count <- cluster_counts[cluster_counts$cluster == "4", "freq"]
+
+# Normalize samples separately by count of B cells
+Counts_0Gy <- filter(cluster_counts, status == "0Gy")
+Counts_0Gy <- mutate(Counts_0Gy, Freq = freq/B_cells_count[1])
+
+Counts_4Gy <- filter(cluster_counts, status == "4Gy")
+Counts_4Gy <- mutate(Counts_4Gy, Freq = freq/B_cells_count[2])
+
+# Calculate recovery ratios by normalizing to B_cells = 1
+recov_ratios <- merge(Counts_0Gy, Counts_4Gy, by = "cluster") %>%
+  mutate(proportion = Freq.y/Freq.x) %>%
+  select(cluster,proportion)%>%
+  arrange(desc(proportion)) 
+
+# Order clusters for representation
+clusters_order_rep <- 
+  c("4", "17", "20", "10", "5", "15", "12", "8", "19","9", "1", "7","3")
+
+recov_ratios$cluster <- factor(recov_ratios$cluster, levels = clusters_order_rep)
+
+Fig_3K_Recovery_ratio_clusters_NPC <- 
+  ggplot(data = recov_ratios, aes(x = cluster, y = proportion)) +
+  geom_bar(stat = "identity", 
+           aes(fill = cluster)) +
+  theme_minimal() +
+  xlab("Recovery ratio in irradiated brains")
+
+png("Figures/Fig_3K_Recovery_ratio_clusters_NPC.png", width = 750, height = 550)
+print(Fig_3K_Recovery_ratio_clusters_NPC)
+dev.off()
+```
+
+##### Fig. 5B Recovery ratios of Dcxlow cells in iNB clusters
+```{r Fig. 5B Recovery ratios of Dcxlow and High iNB clusters}
+NPC_obj <- subset(SCT_obj, NPC == "NPC")
+clusters_iNB <- c("10","5", "15", "12", "8")
+
+# Retrieve number of cells per clusters by status and dcx_lvl
+cluster_counts <- as.data.frame(table(NPC_obj$clusters_NPC, 
+                                      NPC_obj$Status, 
+                                      NPC_obj$dcx_lvl)) 
+colnames(cluster_counts) <- c("cluster", "status", "dcx_lvl", "freq")
+
+# Change status names to use as column names
+levels(cluster_counts$status) <- c("Non_irr", "Irr")
+
+# Calculate ratio of 4Gy/0Gy in DcxLow
+Clusters_ratios <- cluster_counts %>%
+  filter(cluster %in% clusters_iNB) %>%
+  pivot_wider(names_from = status, values_from = freq) %>%
+  mutate(Ratio = Irr/Non_irr)
+
+#Invert order of dcx levels
+Clusters_ratios$dcx_lvl <- factor(Clusters_ratios$dcx_lvl, 
+                                  levels = c("DcxLow", "DcxHigh"))
+
+Fig_5B_Recovery_ratio_by_dcx <- 
+  ggplot(data = Clusters_ratios, aes(x = cluster, y = Ratio)) +
+  geom_bar(stat = "identity", 
+           aes(fill = dcx_lvl)) +
+  scale_fill_manual(values = c("#3a80ce", "#3bd11d")) +
+  theme_minimal() + NoLegend() +
+  xlab("Recovery ratio") +
+  facet_grid(~dcx_lvl)
+
+png("Figures/Fig_5B_Recovery_ratio_by_dcx.png", width = 750, height = 550)
+print(Fig_5B_Recovery_ratio_by_dcx)
+dev.off()
+```
+
+### Violin plots of RSR genes
+
+##### Fig. 4A RSR genes increasing in NPC clusters
+```{r Fig. 4A RSR genes increasing in NPC clusters}
+NPC_obj <- subset(SCT_obj, NPC == "NPC")
+
+Genes_to_show <- c("Celf2", "Celf1", "Elavl2", "Celf3", "Ptbp3", "Elavl4",
+                   "Khdrbs1", "Nova2", "Srrm4", "Celf5", "Elavl1", "Elavl3",
+                   "Mbnl2", "Khdrbs3", "Rbfox1", "Celf4")
+names(Genes_to_show) <- geneIDs[Genes_to_show]
+
+Idents(NPC_obj) <- "clusters_NPC"
+
+vln <- 
+    VlnPlot(NPC_obj, 
+            features = geneIDs[Genes_to_show],
+            combine = F, flip = T, stack = T) + 
+  NoLegend() + #Change names of genes back to gene symbol
+  facet_grid(feature ~ ., labeller = as_labeller(Genes_to_show))
+for (i in 1:length(Genes_to_show)){
+    vln[["data"]][vln[["data"]]$feature == geneIDs[Genes_to_show][i],2] <-
+      rescale(vln[["data"]][vln[["data"]]$feature == geneIDs[Genes_to_show][i],2], 
+      to = c(0,1))
+    }
+
+png("Figures/Fig_4A_RSR_increasing_NPC.png", width = 800, height = 800)
+print(vln)
+dev.off()
+```
+
+##### Fig. 4B RSR genes decreasing in NPC clusters
+```{r Fig. 4B RSR genes decreasing in NPC clusters}
+NPC_obj <- subset(SCT_obj, NPC == "NPC")
+
+Genes_to_show <- c("Mbnl1", "Pcbp1", "Msi1", "Ptbp1", "Msi2", "Pcbp2")
+names(Genes_to_show) <- geneIDs[Genes_to_show]
+
+Idents(NPC_obj) <- "clusters_NPC"
+
+vln <- 
+    VlnPlot(NPC_obj, 
+            features = geneIDs[Genes_to_show],
+            combine = F, flip = T, stack = T) + 
+  NoLegend() + #Change names of genes back to gene symbol
+  facet_grid(feature ~ ., labeller = as_labeller(Genes_to_show))
+for (i in 1:length(Genes_to_show)){
+    vln[["data"]][vln[["data"]]$feature == geneIDs[Genes_to_show][i],2] <-
+      rescale(vln[["data"]][vln[["data"]]$feature == geneIDs[Genes_to_show][i],2], 
+      to = c(0,1))
+}
+
+png("Figures/Fig_4B_RSR_decreasing_NPC.png", width = 800, height = 800)
+print(vln)
+dev.off()
+```
+
+### Violin plots of RSR genes in Dcx Low or High cells
+
+This produces 1 plot per cluster, representing DcxLow or High cells,
+and stored in the Fig_5BC_RSR_genes_Dcx folder
+
+##### Fig. 5C RSR genes increasing in NPC by Dcx
+```{r Fig. 5C RSR genes increasing in NPC by Dcx}
+NPC_obj <- subset(SCT_obj, NPC == "NPC")
+
+Genes_to_show <- c("Khdrbs3", "Elavl3", "Khdrbs1", "Elavl2", "Elavl4", "Celf4")
+names(Genes_to_show) <- geneIDs[Genes_to_show]
+
+Idents(NPC_obj) <- "dcx_lvl"
+
+clusters_to_show <- c("4","17","20","10","5","15","12","8","19","1","3","7","9")
+
+for (cluster_nb in clusters_to_show){
+  vln <- 
+    VlnPlot(NPC_obj, 
+            features = geneIDs[Genes_to_show],
+            combine = F,
+            flip = T, stack = T,
+            assay = "SCT") + 
+    NoLegend() + #Change names of genes back to gene symbol
+    facet_grid(feature ~ ., labeller = as_labeller(Genes_to_show)) +
+    ggtitle(cluster_nb) +
+    xlab("")
+  #Rescale between 0 and 1
+  for (i in 1:length(Genes_to_show)){
+    vln[["data"]][vln[["data"]]$feature == geneIDs[Genes_to_show][i],2] <-
+      rescale(vln[["data"]][vln[["data"]]$feature == geneIDs[Genes_to_show][i],2], 
+      to = c(0,1))
+    }
+
+png(paste0("Figures/Fig_5CD_RSR_genes_Dcx/Increasing_cluster",cluster_nb,".png"), 
+          width = 250, height = 425)
+print(vln)
+dev.off()
+}
+```
+
+##### Fig. 5D RSR genes decreasing in NPC by Dcx
+```{r Fig. 5D RSR genes decreasing in NPC by Dcx}
+NPC_obj <- subset(SCT_obj, NPC == "NPC")
+
+Genes_to_show <- c("Msi1", "Ptbp1", "Msi2", "Mbnl1")
+names(Genes_to_show) <- geneIDs[Genes_to_show]
+
+Idents(NPC_obj) <- "dcx_lvl"
+
+clusters_to_show <- c("4","17","20","10","5","15","12","8","19","1","3","7","9")
+
+for (cluster_nb in clusters_to_show){
+  vln <- 
+    VlnPlot(NPC_obj, 
+            features = geneIDs[Genes_to_show],
+            combine = F,
+            flip = T, stack = T,
+            assay = "SCT") + 
+    NoLegend() + #Change names of genes back to gene symbol
+    facet_grid(feature ~ ., labeller = as_labeller(Genes_to_show)) +
+    ggtitle(cluster_nb) +
+    xlab("")
+  #Rescale between 0 and 1
+  for (i in 1:length(Genes_to_show)){
+    vln[["data"]][vln[["data"]]$feature == geneIDs[Genes_to_show][i],2] <-
+      rescale(vln[["data"]][vln[["data"]]$feature == geneIDs[Genes_to_show][i],2], 
+      to = c(0,1))
+    }
+  
+png(paste0("Figures/Fig_5CD_RSR_genes_Dcx/Decreasing_cluster",cluster_nb,".png"), 
+          width = 175, height = 300)
+print(vln)
+dev.off()
+}
+```
+
+##### Fig. 7A RSR genes increasing in irradiated NPC by Dcx
+```{r Fig. 7A RSR genes increasing in in irradiated NPC by Dcx}
+Irr_obj <- subset(SCT_obj, NPC == "NPC" & Status == "4Gy")
+
+Genes_to_show <- c("Khdrbs3", "Elavl3", "Khdrbs1", "Elavl2", "Elavl4", "Celf4")
+names(Genes_to_show) <- geneIDs[Genes_to_show]
+
+Idents(Irr_obj) <- "dcx_lvl"
+
+clusters_to_show <- c("4","17","20","10","5","15","12","8","19","1","3","7","9")
+
+for (cluster_nb in clusters_to_show){
+  vln <- 
+    VlnPlot(Irr_obj, 
+            features = geneIDs[Genes_to_show],
+            combine = F,
+            flip = T, stack = T,
+            assay = "SCT") + 
+    NoLegend() + #Change names of genes back to gene symbol
+    facet_grid(feature ~ ., labeller = as_labeller(Genes_to_show)) +
+    ggtitle(cluster_nb) +
+    xlab("")
+  #Rescale between 0 and 1
+  for (i in 1:length(Genes_to_show)){
+    vln[["data"]][vln[["data"]]$feature == geneIDs[Genes_to_show][i],2] <-
+      rescale(vln[["data"]][vln[["data"]]$feature == geneIDs[Genes_to_show][i],2], 
+      to = c(0,1))
+    }
+
+png(paste0("Figures/Fig_7AB_RSR_genes_Dcx_in_irradiated/Increasing_cluster",cluster_nb,".png"), 
+          width = 250, height = 425)
+print(vln)
+dev.off()
+}
+```
+
+##### Fig. 7A RSR genes decreasing in irradiated NPC by Dcx
+```{r Fig. 7A RSR genes decreasing in in irradiated NPC by Dcx}
+Irr_obj <- subset(SCT_obj, NPC == "NPC" & Status == "4Gy")
+
+Genes_to_show <- c("Msi1", "Ptbp1", "Msi2", "Mbnl1")
+names(Genes_to_show) <- geneIDs[Genes_to_show]
+
+Idents(Irr_obj) <- "dcx_lvl"
+
+clusters_to_show <- c("4","17","20","10","5","15","12","8","19","1","3","7","9")
+
+for (cluster_nb in clusters_to_show){
+  vln <- 
+    VlnPlot(Irr_obj, 
+            features = geneIDs[Genes_to_show],
+            combine = F,
+            flip = T, stack = T,
+            assay = "SCT") + 
+    NoLegend() + #Change names of genes back to gene symbol
+    facet_grid(feature ~ ., labeller = as_labeller(Genes_to_show)) +
+    ggtitle(cluster_nb) +
+    xlab("")
+  #Rescale between 0 and 1
+  for (i in 1:length(Genes_to_show)){
+    vln[["data"]][vln[["data"]]$feature == geneIDs[Genes_to_show][i],2] <-
+      rescale(vln[["data"]][vln[["data"]]$feature == geneIDs[Genes_to_show][i],2], 
+      to = c(0,1))
+    }
+  
+png(paste0("Figures/Fig_7AB_RSR_genes_Dcx_in_irradiated/Decreasing_cluster",cluster_nb,".png"), 
+          width = 175, height = 300)
+print(vln)
+dev.off()
+}
+```
+
+##### Fig. S6 Violin of Dcx expression
+```{r Fig. S6 Violin of Dcx expression}
+NPC_obj <- subset(SCT_obj, NPC == "NPC")
+
+Idents(NPC_obj) <- "clusters_NPC"
+
+Fig_S6_Violin_Dcx_in_NPC <-
+  VlnPlot(NPC_obj,
+          features = geneIDs["Dcx"],
+          assay = "SCT",
+          slot = "counts",
+          pt.size = 0) + 
+  geom_boxplot(width = 0.1) +
+  geom_hline(yintercept = 1)+
+  NoLegend() +
+  xlab("") +
+  ggtitle("")
+
+png("Figures/Fig_S6_Violin_Dcx_in_NPC.png")
+print(Fig_S6_Violin_Dcx_in_NPC)
+dev.off()
+```
+

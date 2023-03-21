@@ -1,0 +1,32 @@
+---
+title: "Version and necessary libraries"
+
+output: html_notebook
+---
+
+```{r}
+R.Version()
+```
+
+Necessary librairies
+
+```{r}
+setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
+
+necessary_librairies <- c('ggplot2', 'tidyverse', 'ggVennDiagram', 'clustree', 'biomartr', 'circlize', 'readxl', 'readxl', 'UCell', 'scales', 'stringr', 'plotly', 'msigdbr', 'patchwork', 'forcats', 'RColorBrewer', 'openxlsx', 'BiocManager', 'withr', 'remotes')
+install.packages(necessary_librairies)
+
+with_libpaths(new = "Packages_versions/Seurat_v4.1.1", install_github('satijalab/Seurat@v4.1.1'), force)
+
+BiocManager::install("biomaRt")
+BiocManager::install("clusterProfiler")
+BiocManager::install("enrichplot")
+BiocManager::install("UCell")
+BiocManager::install("monocle3")
+BiocManager::install("tricycle")
+BiocManager::install("org.Mm.eg.db")
+BiocManager::install("slingshot")
+remotes::install_github('satijalab/seurat-wrappers')
+```
+
+

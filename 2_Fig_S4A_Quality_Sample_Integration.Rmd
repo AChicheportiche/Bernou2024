@@ -1,0 +1,252 @@
+---
+title: "Sample loading and quality control"
+
+output:
+  html_document:
+    df_print: paged
+---
+
+### Loading Samples and set up
+
+Loading libraries
+Note: please make sure to use both Seurat v4.1.1 and SeuratObject v4.1.0 to reproduce this analysis,
+as later versions of either packages change the UMAP at the RunUMAP step.
+
+```{r Libraries}
+library(Seurat)
+library(remotes)
+library(tidyverse)
+library(dplyr)
+library(biomaRt)
+library(ggplot2)
+library(patchwork)
+
+Ensembl_gene <- useEnsembl(biomart = "genes", dataset = "mmusculus_gene_ensembl")
+```
+
+Loading all samples and creating list of seurat objects; teh list will be used until integration
+```{r Loading samples}
+Sample_names <- c("CTRL_1", "CTRL_2", "4Gy_1", "4Gy_2")
+
+Sample_list <- 
+  lapply(X = Sample_names, FUN = function(sample){
+    Read10X(data.dir = paste0("All_inputs/Samples/SVZ_", sample),
+            gene.column = 1,
+            cell.column = 1,
+            unique.features = TRUE,
+            strip.suffix = TRUE) %>%
+      CreateSeuratObject(project = sample,
+                         assay = "RNA",
+                         min.cells = 0,
+                         min.features = 1)
+  })
+```
+
+Use BioMart as a reference for all features (features are shared amongst samples)
+```{r Creating Biomart}
+Biomart_annotated <- getBM(attributes = c("ensembl_gene_id", 
+                                          "external_gene_name",
+                                          "description",
+                                          "chromosome_name"),
+                           filters = "ensembl_gene_id", 
+                           values = rownames(Sample_list[[1]]),
+                           mart = Ensembl_gene) 
+write_csv(Biomart_annotated, file = "Analysis_tools/Biomart_annotated.csv")
+```
+
+Create variables for easy calling of Ensembl Id from External Gene Name (or vice-versa)
+```{r Creating GeneIDs}
+geneIDs <- # For easy calling of genes through external gene name
+  Biomart_annotated[!duplicated(Biomart_annotated$external_gene_name),1]
+names(geneIDs) <- Biomart_annotated[!duplicated(Biomart_annotated$external_gene_name),2]
+write.csv(x = geneIDs, file = "Analysis_tools/geneIDs.csv")
+```
+
+### Quality controls
+
+Extract mitochondrial gene list and calculate percentage of mitochondrial genes
+```{r Percent mito}
+MT_genes <- subset(Biomart_annotated,
+                   chromosome_name == "MT")$ensembl_gene_id
+
+Sample_list <- lapply(X= Sample_list, FUN = PercentageFeatureSet, 
+                   features = MT_genes,
+                   col.name = "Percent.mito")
+```
+
+Pre-filter cells containing very few features & counts
+```{r Pre-filtering}
+Sample_list <- lapply(X =  Sample_list, FUN = subset,
+                   nCount_RNA > 100 & nFeature_RNA > 200)
+```
+
+
+Optional merging to represent samples together for quality controls
+```{r Merging}
+Temp_merge <- merge(x = Sample_list[[1]],
+                    y = c(Sample_list[[2]], Sample_list[[3]], Sample_list[[4]]),
+                    add.cell.ids = Sample_names)
+png("Quality_Control/Vln_Counts.png")
+VlnPlot(Temp_merge, 
+        features = "nCount_RNA") #  ,y.max = 40000 to see low count cells
+dev.off()
+png("Quality_Control/Vln_nFeature.png")
+VlnPlot(Temp_merge, 
+        features = "nFeature_RNA")
+dev.off()
+png("Quality_Control/Vln_Percent_mito.png")
+VlnPlot(Temp_merge, 
+        features = "Percent.mito") #  ,y.max = 50 to see low %mito cells
+dev.off()
+
+rm(Temp_merge)
+```
+
+Choose cutoff for features, count minimmums & counts maximum
+```{r Setting thresholds}
+nFeatures_cutoff <- c(1500, 1500, 1800, 1500)
+nCounts_cutoff <- c(2350, 2600, 2700, 2700)
+nCounts_upper <- c(48000, 54000, 48000, 54000)
+```
+
+Fig. S3-A Violin Plots of Counts, Features and %mito for sample quality controls and optional additional representations to visualize thresholds
+
+```{r Fig S4A - Quality Controls}
+for (i in 1:4) {
+  png(paste0("Quality_Control/FigS4A_Vln_CTM_",Sample_names[i], ".png"), 
+      height = 500, width = 500)
+  print(VlnPlot(Sample_list[[i]], 
+                features = c("nCount_RNA", "nFeature_RNA", "Percent.mito")))
+  dev.off()
+  
+  # # Optional separate violin plots with thresholds represented
+  
+  # png(paste0("Quality_Control/Vln_Counts_",Sample_names[i], ".png"), 
+  #     height = 500, width = 400 )
+  # print(VlnPlot(Sample_list[[i]], 
+  #               features = "nCount_RNA") +
+  #         geom_hline(yintercept = nCounts_cutoff[i]) +
+  #         geom_hline(yintercept = nCounts_upper[i]))
+  # dev.off()
+  # 
+  # png(paste0("Quality_Control/Vln_Features_",Sample_names[i], ".png"), 
+  #     height = 500, width = 400 )
+  # print(VlnPlot(Sample_list[[i]], 
+  #               features = "nFeature_RNA"))+
+  #   geom_hline(yintercept = nFeatures_cutoff[i])
+  # dev.off()
+  # 
+  # png(paste0("Quality_Control/Vln_mito_",Sample_names[i], ".png"), 
+  #     height = 500, width = 400 )
+  # print(VlnPlot(Sample_list[[i]], 
+  #               features = "Percent.mito")+
+  #         geom_hline(yintercept = 10))
+  # dev.off()
+  
+  # # Optional histogram to help with threshold choice
+  # png(paste0("Quality_Control/hist_Counts_",Sample_names[i], ".png"), 
+  #     height = 500, width = 400 )
+  # hist(Sample_list[[i]]@meta.data[["nCount_RNA"]], breaks = 150, xlim = c(0, nCounts_upper[i]))
+  # abline(v = nCounts_cutoff[i], col = "red")
+  # dev.off()
+  
+
+  # # Optional histogram to help with threshold choice
+  # png(paste0("Quality_Control/hist_Features_",Sample_names[i], ".png"), 
+  #     height = 500, width = 400 )
+  # hist(Sample_list[[i]]@meta.data[["nFeature_RNA"]], breaks = 150, xlim = c(0, 8000) )
+  # abline(v = nFeatures_cutoff[i], col = "red")
+  # dev.off()
+  
+#  #Optional DotPlot to visualize Counts, Features and %mito and cutoffs
+#   png(
+#     paste0("Quality_Control/Quality_dotplot", Sample_names[i], ".png"),
+#     height = 500,
+#     width = 400
+#   )
+#   print(
+#     ggplot(
+#       Sample_list[[i]]@meta.data,
+#       aes(x = nFeature_RNA, y = nCount_RNA, colour = Percent.mito)
+#     ) +
+#       geom_point() +
+#       scale_color_gradient2(
+#         low = "green",
+#         mid = "yellow",
+#         high = "red",
+#         midpoint = 20
+#       ) +
+#       geom_hline(yintercept = nCounts_cutoff[i]) +
+#       geom_hline(yintercept = nCounts_upper[i]) +
+#       geom_vline(xintercept = nFeatures_cutoff[i]) +
+#     scale_y_log10() )
+# dev.off()
+}
+```
+
+Subsetting cells that meet Feature, Genes, and mitochondrial content criterias.
+
+In this analysis, we retained only cells containing <10% of mitochondrial genes.
+```{r Filtering quality cells}
+Sample_list <- mapply(
+  FUN = function(object, nC, nF, nC_up) {
+    return(subset(
+      object, (nCount_RNA > nC &
+                 nFeature_RNA > nF &
+                 Percent.mito < 10 &
+                 nCount_RNA < nC_up)))},
+  object = Sample_list,
+  nC = nCounts_cutoff,
+  nF = nFeatures_cutoff,
+  nC_up = nCounts_upper)
+```
+
+Useful metadata addition & object save
+
+```{r Adding metadata}
+Sample_list <- lapply(X = 1:4, FUN = function(Spl_nb){
+  Sample_list[[Spl_nb]]$id_sequence <- colnames(Sample_list[[Spl_nb]])
+  ID <- paste0(colnames(Sample_list[[Spl_nb]]), "_", Spl_nb)
+  names(ID) <- colnames(Sample_list[[Spl_nb]])
+  Sample_list[[Spl_nb]]$id <- ID
+  return(Sample_list[[Spl_nb]])
+})
+```
+
+Prepare integration using SCTransform function (For workflow tutorial see https://satijalab.org/seurat/articles/sctransform_v2_vignette.html).
+In this analysis, we used 4000 variable features to normalize UMIs
+We also used 4000 variables for integration
+
+```{r SCTransform}
+Sample_list <- lapply(X = Sample_list, 
+                   FUN = SCTransform,
+                   variable.features.n = 4000,
+                   return.only.var.genes = F)
+```
+
+We can then proceed to finding integration features based on the 4000 variable features, 
+and carry on with the standard SCT integration workflow
+Note that this results in an integrated assay, but that differential expression 
+analysis will require an additional normalization step, using the PrepSCTIntegration function.
+
+```{r Integration}
+Integration_Features <- SelectIntegrationFeatures(object.list = Sample_list, 
+                                                  nfeatures = 4000,
+                                                  assay = rep("SCT",4))
+
+Sample_list <- PrepSCTIntegration(object.list = Sample_list,
+                               anchor.features = Integration_Features)
+
+Sample_list <- 
+  FindIntegrationAnchors(Sample_list, normalization.method = "SCT",
+                         anchor.features = Integration_Features)
+
+SCT_obj <- IntegrateData(anchorset = Sample_list, normalization.method = "SCT")
+
+saveRDS(object = SCT_obj, file = "Objects/SCT_obj.rds")
+```
+
+
+```{r sessionInfo}
+sessionInfo()
+```
