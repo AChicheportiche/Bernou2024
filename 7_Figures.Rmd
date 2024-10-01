@@ -5,10 +5,6 @@ output: html_document
 
 ### This script recreates and stores all figures from the manuscript (except Fig. S4A)
 
-In order:
-
-Fig. S4B S5A 3B S5B 3C 3D 3E 3F 3H 3I 3J 5A S5C 3G 3K 5B 4A 4B 5C 5D S7A S7B S6  
-
 ```{r Librairies}
 library(tidyverse)
 library(dplyr)
@@ -37,13 +33,13 @@ theme_NPC <- list(scale_x_continuous(limits = c(-3.5,9)), #focus the umap
 
 ### Quality control
 
-##### Fig. S4A (Counts, features and mitochondrial gene percentage in samples) is created at sample loading in Script "2_Fig_S4A_Quality_Sample_Integration.Rmd"
+##### Fig. S6A (Counts, features and mitochondrial gene percentage in samples) is created at sample loading in Script "2_Fig_S6A_Quality_Sample_Integration.Rmd"
 
-##### Fig. S4B: Representation of samples among clusters
-```{r Fig. S4B: Representation of samples among clusters}
+##### Fig. S6B: Representation of samples among clusters
+```{r Fig. S6B: Representation of samples among clusters}
 Freq_samples <- as.data.frame(table(SCT_obj$clusters, SCT_obj$orig.ident)) 
 
-Fig_S4B_Cluster_representation_in_samples <- 
+Fig_S6B_Cluster_representation_in_samples <- 
   ggplot(Freq_samples, aes(x = Var1, y = Freq, fill = Var2)) +
   geom_bar(stat = "identity",position = "fill") +
   xlab(NULL) + 
@@ -56,7 +52,7 @@ dev.off()
 
 ### UMAPs of all cells including micro-environment
 
-##### Fig. S5A: UMAP of all clusters
+##### Fig. S7A: UMAP of all clusters
 ```{r S5A UMAP all clusters}
 Fig_S5A_UMAP_all_clusters <- 
   UMAPPlot(SCT_obj, group.by = "clusters", label = TRUE)
@@ -78,8 +74,8 @@ dev.off()
 
 ### Violin Plot representations
 
-##### Fig. S5B: Violin Plot of litterature markers in all clusters
-```{r S5B Vln cell markers all clusters}
+##### Fig. S7B: Violin Plot of litterature markers in all clusters
+```{r S7B Vln cell markers all clusters}
 Genes_to_show <- c("Slc1a3", "Aqp4", "Gfap", "Vcam1", "S100a6", "Egfr", "Ascl1", "Top2a", "Mki67", "Dcx", "Robo2", "Slc17a6", "Pdgfra", "Il33", "Mog", "S100b", "Dnah11", "Acta2", "Flt1", "Pecam1", "Pdgfrb", "Des", "Vtn", "Fyn", "P2ry12", "Cd3e", "Clec4e", "Cox8b")
 names(Genes_to_show) <- geneIDs[Genes_to_show]
 
@@ -99,7 +95,7 @@ for (i in 1:length(Genes_to_show)){
       to = c(0,1))
 }
 
-png("Figures/Fig_S5B_Vln_all_clusters_markers.png", width = 800, height = 800)
+png("Figures/Fig_S7B_Vln_all_clusters_markers.png", width = 800, height = 800)
 print(vln)
 dev.off()
 ```
@@ -240,14 +236,14 @@ print(Fig_5A_UMAP_Dcx_NPC)
 dev.off()
 ```
 
-##### Fig. S5C UMAP of Astrocyte_Bcell Identity in NPC
-```{r Fig. Fig. S5C UMAP of Astrocyte_Bcell Identity in NPC}
+##### Fig. S7C UMAP of Astrocyte_Bcell Identity in NPC
+```{r Fig. Fig. S7C UMAP of Astrocyte_Bcell Identity in NPC}
 NPC_obj <- subset(SCT_obj, NPC == "NPC")
 
-Fig_S5C_UMAP_Astro_B_NPC <-
+Fig_S7C_UMAP_Astro_B_NPC <-
   FeaturePlot(NPC_obj, features = geneIDs["Dcx"])
 
-png("Figures/Fig_S5C_UMAP_Astro_B_NPC.png")
+png("Figures/Fig_S7C_UMAP_Astro_B_NPC.png")
 print(Fig_S5C_UMAP_Astro_B_NPC)
 dev.off()
 ```
@@ -509,8 +505,8 @@ dev.off()
 }
 ```
 
-##### Fig. 7A RSR genes increasing in irradiated NPC by Dcx
-```{r Fig. 7A RSR genes increasing in in irradiated NPC by Dcx}
+##### Fig. S9A RSR genes increasing in irradiated NPC by Dcx
+```{r Fig. S9A RSR genes increasing in in irradiated NPC by Dcx}
 Irr_obj <- subset(SCT_obj, NPC == "NPC" & Status == "4Gy")
 
 Genes_to_show <- c("Khdrbs3", "Elavl3", "Khdrbs1", "Elavl2", "Elavl4", "Celf4")
@@ -538,15 +534,15 @@ for (cluster_nb in clusters_to_show){
       to = c(0,1))
     }
 
-png(paste0("Figures/Fig_7AB_RSR_genes_Dcx_in_irradiated/Increasing_cluster",cluster_nb,".png"), 
+png(paste0("Figures/Fig_S9A_RSR_genes_Dcx_in_irradiated/Increasing_cluster",cluster_nb,".png"), 
           width = 250, height = 425)
 print(vln)
 dev.off()
 }
 ```
 
-##### Fig. 7A RSR genes decreasing in irradiated NPC by Dcx
-```{r Fig. 7A RSR genes decreasing in in irradiated NPC by Dcx}
+##### Fig. S9B RSR genes decreasing in irradiated NPC by Dcx
+```{r Fig. S9B RSR genes decreasing in in irradiated NPC by Dcx}
 Irr_obj <- subset(SCT_obj, NPC == "NPC" & Status == "4Gy")
 
 Genes_to_show <- c("Msi1", "Ptbp1", "Msi2", "Mbnl1")
@@ -581,8 +577,8 @@ dev.off()
 }
 ```
 
-##### Fig. S6 Violin of Dcx expression
-```{r Fig. S6 Violin of Dcx expression}
+##### Fig. S8 Violin of Dcx expression
+```{r Fig. S8 Violin of Dcx expression}
 NPC_obj <- subset(SCT_obj, NPC == "NPC")
 
 Idents(NPC_obj) <- "clusters_NPC"
@@ -599,8 +595,8 @@ Fig_S6_Violin_Dcx_in_NPC <-
   xlab("") +
   ggtitle("")
 
-png("Figures/Fig_S6_Violin_Dcx_in_NPC.png")
-print(Fig_S6_Violin_Dcx_in_NPC)
+png("Figures/Fig_S8_Violin_Dcx_in_NPC.png")
+print(Fig_S8_Violin_Dcx_in_NPC)
 dev.off()
 ```
 
